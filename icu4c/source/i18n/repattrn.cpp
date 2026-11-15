@@ -230,10 +230,12 @@ void RegexPattern::zap() {
     delete fCompiledPat;
     fCompiledPat = nullptr;
     int i;
-    for (i=1; i<fSets->size(); i++) {
-        UnicodeSet *s;
-        s = static_cast<UnicodeSet*>(fSets->elementAt(i));
-        delete s;
+    if (fSets != nullptr) {
+        for (i=1; i<fSets->size(); i++) {
+            UnicodeSet *s;
+            s = static_cast<UnicodeSet*>(fSets->elementAt(i));
+            delete s;
+        }
     }
     delete fSets;
     fSets = nullptr;
