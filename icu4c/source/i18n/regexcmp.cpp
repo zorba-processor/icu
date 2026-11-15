@@ -113,6 +113,10 @@ void    RegexCompile::compile(
                          UErrorCode &e)              // Error Code
 {
     fRXPat->fPatternString = new UnicodeString(pat);
+    if (fRXPat->fPatternString == nullptr) {
+        e = U_MEMORY_ALLOCATION_ERROR;
+        return;
+    }
     UText patternText = UTEXT_INITIALIZER;
     utext_openConstUnicodeString(&patternText, fRXPat->fPatternString, &e);
 
