@@ -1,0 +1,47 @@
+# CI for the zorba-processor fork of ICU (branch zorba-patches).
+# Builds ICU4C with the configure options of Zorba's builder images (those
+# of Arch Linux's icu package), runs the intltest regex suite, then
+# zorba/regex-malloc-fail.cpp: RegexPattern::compile() with each of its
+# allocations failing in turn must never crash. A compilation that reports
+# success with a pattern that does not match is printed, not failed.
+name: zorba-ci
+
+on:
+  push:
+    branches: [zorba-patches]
+    tags: ['release-*-zorba.*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  arch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    container: archlinux:base
+    steps:
+      - name: Install dependencies
+        run: pacman -Syu --noconfirm --needed base-devel git python
+      - uses: actions/checkout@v7
+      - name: Configure
+        working-directory: icu4c/source
+        run: |
+          ./configure --prefix=/usr --sysconfdir=/etc --mandir=/usr/share/man \
+            --sbindir=/usr/bin --disable-samples
+      - name: Build
+        working-directory: icu4c/source
+        run: make -j"$(nproc)"
+      - name: intltest regex
+        working-directory: icu4c/source
+        run: |
+          make -j"$(nproc)" -C test/intltest
+          make -C test/intltest check-local INTLTEST_OPTS=regex
+      - name: Regular expressions under allocation failure
+        working-directory: icu4c/source
+        run: |
+          g++ -O1 -g -rdynamic -Icommon -Ii18n ../../zorba/regex-malloc-fail.cpp \
+            -Llib -licui18n -licuuc -licudata -Wl,-rpath,"$PWD/lib" \
+            -o regex-malloc-fail
+          ./regex-malloc-fail
